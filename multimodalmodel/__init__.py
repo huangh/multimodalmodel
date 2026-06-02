@@ -1,0 +1,52 @@
+"""multimodalmodel — IBI/TransitApp ETA accuracy benchmark toolkit."""
+
+from multimodalmodel.benchmark import (
+    BIN_SPECS,
+    classify_predictions,
+    compute_accuracy,
+    generate_sample_data,
+)
+from multimodalmodel.charts import make_benchmark_chart
+from multimodalmodel.gtfs_rt import fetch_feed, parse_trip_updates, parse_vehicle_positions
+from multimodalmodel.live_tracker import MIN_RESOLVED_FOR_CHART, PredictionTracker
+
+__all__ = [
+    "BIN_SPECS",
+    "MIN_RESOLVED_FOR_CHART",
+    "PredictionTracker",
+    "classify_predictions",
+    "compute_accuracy",
+    "fetch_feed",
+    "generate_sample_data",
+    "make_benchmark_chart",
+    "parse_trip_updates",
+    "parse_vehicle_positions",
+]
+
+
+def main() -> None:
+    print("multimodalmodel — IBI ETA Accuracy Benchmark")
+    print("  marimo run app.py          — synthetic demo")
+    print("  marimo run live_app.py     — live GTFS-RT feed")
+    print("  multimodalmodel-app        — launch demo (installed entry point)")
+    print("  multimodalmodel-live       — launch live app (installed entry point)")
+
+
+def run_app() -> None:
+    """Launch the synthetic demo Marimo app."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    app_path = Path(__file__).parent.parent / "app.py"
+    sys.exit(subprocess.call(["marimo", "run", str(app_path)]))
+
+
+def run_live_app() -> None:
+    """Launch the live GTFS-RT Marimo app."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    app_path = Path(__file__).parent.parent / "live_app.py"
+    sys.exit(subprocess.call(["marimo", "run", str(app_path)]))
