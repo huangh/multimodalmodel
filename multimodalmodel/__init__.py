@@ -9,14 +9,22 @@ from multimodalmodel.benchmark import (
 from multimodalmodel.charts import make_benchmark_chart
 from multimodalmodel.gtfs_rt import fetch_feed, parse_trip_updates, parse_vehicle_positions
 from multimodalmodel.live_tracker import MIN_RESOLVED_FOR_CHART, PredictionTracker
+from multimodalmodel.mbta import (
+    MBTA_SUBWAY_ROUTES,
+    fetch_mbta_predictions,
+    fetch_mbta_vehicles,
+)
 
 __all__ = [
     "BIN_SPECS",
+    "MBTA_SUBWAY_ROUTES",
     "MIN_RESOLVED_FOR_CHART",
     "PredictionTracker",
     "classify_predictions",
     "compute_accuracy",
     "fetch_feed",
+    "fetch_mbta_predictions",
+    "fetch_mbta_vehicles",
     "generate_sample_data",
     "make_benchmark_chart",
     "parse_trip_updates",
@@ -28,8 +36,10 @@ def main() -> None:
     print("multimodalmodel — IBI ETA Accuracy Benchmark")
     print("  marimo run app.py          — synthetic demo")
     print("  marimo run live_app.py     — live GTFS-RT feed")
+    print("  marimo run mbta_app.py     — live MBTA v3 API feed")
     print("  multimodalmodel-app        — launch demo (installed entry point)")
-    print("  multimodalmodel-live       — launch live app (installed entry point)")
+    print("  multimodalmodel-live       — launch live GTFS-RT app")
+    print("  multimodalmodel-mbta       — launch MBTA v3 live app")
 
 
 def run_app() -> None:
@@ -49,4 +59,14 @@ def run_live_app() -> None:
     from pathlib import Path
 
     app_path = Path(__file__).parent.parent / "live_app.py"
+    sys.exit(subprocess.call(["marimo", "run", str(app_path)]))
+
+
+def run_mbta_app() -> None:
+    """Launch the MBTA v3 live Marimo app."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    app_path = Path(__file__).parent.parent / "mbta_app.py"
     sys.exit(subprocess.call(["marimo", "run", str(app_path)]))
