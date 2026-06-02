@@ -51,83 +51,188 @@ df = df.join(specs_df, on="bin", how="left").with_columns(
     ).alias("is_accurate")
 )
 
-bin_order = [s["label"] for s in BIN_SPECS]
-agg = (
-    df.filter(pl.col("bin").is_not_null())
-    .group_by("bin")
-    .agg(
-        [
-            pl.col("is_accurate").sum().alias("accurate_n"),
-            pl.len().alias("total_n"),
-        ]
-    )
-    .with_columns(
-        (pl.col("accurate_n") / pl.col("total_n") * 100).round(1).alias("accuracy_pct")
-    )
-)
+predictions_df = df.filter(pl.col("bin").is_not_null())
+print(f"Predictions in range: {len(predictions_df)}")
 
-all_bins = pl.DataFrame({"bin": bin_order})
-results_df = all_bins.join(agg, on="bin", how="left").with_columns(
-    [
-        pl.col("accurate_n").fill_null(0),
-        pl.col("total_n").fill_null(0),
-        pl.col("accuracy_pct").fill_null(0.0),
-    ]
-)
-overall_accuracy = float(results_df["accuracy_pct"].mean())
+# Convert to minutes
+pm = predictions_df["predicted_s"] / 60
+em = predictions_df["error_s"] / 60
+accurate = predictions_df["is_accurate"]
+too_late = ~accurate & (em > predictions_df["late_s"] / 60)
+too_early = ~accurate & (em < -(predictions_df["early_s"] / 60))
 
-print(results_df)
-print(f"Overall accuracy: {overall_accuracy:.1f}%")
 
-colors = [
-    "#2ecc71" if v >= 90 else "#f39c12" if v >= 80 else "#e74c3c"
-    for v in results_df["accuracy_pct"].to_list()
-]
+def fmt(seconds: int, positive: bool) -> str:
+    m, s = abs(seconds) // 60, abs(seconds) % 60
+    sign = "+" if positive else "-"
+    if m and s:
+        return f"{sign}{m}m {s}s"
+    return f"{sign}{m}m" if m else f"{sign}{s}s"
+
+
+# Staircase coordinates in minutes (x-axis reversed: 15 → 0)
+xs = [15.0, 10.0, 10.0, 6.0, 6.0, 3.0, 3.0, 0.0]
+y_up = [4.5, 4.5, 3.5, 3.5, 2.5, 2.5, 1.5, 1.5]
+y_lo = [-1.5, -1.5, -1.0, -1.0, -1.0, -1.0, -0.5, -0.5]
 
 fig = go.Figure()
+
+# Green fill between staircases
 fig.add_trace(
-    go.Bar(
-        x=results_df["bin"].to_list(),
-        y=results_df["accuracy_pct"].to_list(),
-        name="Accuracy %",
-        marker_color=colors,
-        text=[f"{v:.1f}%" for v in results_df["accuracy_pct"].to_list()],
-        textposition="outside",
+    go.Scatter(
+        x=xs,
+        y=y_lo,
+        mode="lines",
+        line=dict(color="rgba(0,168,89,0.75)", width=2),
+        fill=None,
+        showlegend=False,
+        hoverinfo="skip",
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=xs,
+        y=y_up,
+        mode="lines",
+        line=dict(color="rgba(0,168,89,0.75)", width=2),
+        fill="tonexty",
+        fillcolor="rgba(46,204,113,0.18)",
+        showlegend=False,
+        hoverinfo="skip",
     )
 )
 
-fig.add_hline(
-    y=90,
-    line_dash="dash",
-    line_color="green",
-    annotation_text="90% - Great",
-    annotation_position="right",
+# Too late — yellow
+xl, yl = pm.filter(too_late).to_list(), em.filter(too_late).to_list()
+if xl:
+    fig.add_trace(
+        go.Scatter(
+            x=xl,
+            y=yl,
+            mode="markers",
+            marker=dict(color="#f1c40f", size=9, line=dict(color="white", width=1)),
+            name="Excess wait time — Inaccurate ETA",
+        )
+    )
+
+# Accurate — green
+xa, ya = pm.filter(accurate).to_list(), em.filter(accurate).to_list()
+if xa:
+    fig.add_trace(
+        go.Scatter(
+            x=xa,
+            y=ya,
+            mode="markers",
+            marker=dict(color="#2ecc71", size=9, line=dict(color="white", width=1)),
+            name="Catch the ride — Accurate ETA",
+        )
+    )
+
+# Too early — pink
+xe, ye = pm.filter(too_early).to_list(), em.filter(too_early).to_list()
+if xe:
+    fig.add_trace(
+        go.Scatter(
+            x=xe,
+            y=ye,
+            mode="markers",
+            marker=dict(color="#e91e63", size=9, line=dict(color="white", width=1)),
+            name="Miss the ride — Inaccurate ETA",
+        )
+    )
+
+# Bin separators
+for bx in [3.0, 6.0, 10.0]:
+    fig.add_vline(x=bx, line_dash="dot", line_color="#cccccc", line_width=1.5)
+
+# Arrival line
+fig.add_vline(x=0.0, line_color="#2196f3", line_width=2.5)
+fig.add_annotation(
+    x=0.0,
+    y=1.0,
+    xref="x",
+    yref="paper",
+    text="<b>ARRIVAL</b>",
+    font=dict(color="#2196f3", size=11),
+    showarrow=False,
+    xanchor="left",
+    yanchor="bottom",
 )
-fig.add_hline(
-    y=80,
-    line_dash="dot",
-    line_color="orange",
-    annotation_text="80% - Good",
-    annotation_position="right",
-)
-fig.add_hline(
-    y=overall_accuracy,
-    line_dash="solid",
-    line_color="#3498db",
-    line_width=2,
-    annotation_text=f"Overall: {overall_accuracy:.1f}%",
-    annotation_position="left",
-)
+
+cat_labels = [
+    "Where is my ride?",
+    "Do I need to hustle?",
+    "Do I need to leave now?",
+    "Is the vehicle coming?",
+]
+for i, spec in enumerate(BIN_SPECS):
+    xmid = (spec["min_s"] + spec["max_s"]) / 2 / 60
+    fig.add_annotation(
+        x=xmid,
+        y=spec["late_s"] / 60 + 0.18,
+        text=fmt(spec["late_s"], positive=True),
+        showarrow=False,
+        font=dict(size=10, color="#444"),
+        yanchor="bottom",
+    )
+    fig.add_annotation(
+        x=xmid,
+        y=-spec["early_s"] / 60 - 0.18,
+        text=fmt(spec["early_s"], positive=False),
+        showarrow=False,
+        font=dict(size=10, color="#444"),
+        yanchor="top",
+    )
+    fig.add_annotation(
+        x=xmid,
+        y=1.04,
+        xref="x",
+        yref="paper",
+        text=f"<i>{cat_labels[i]}</i>",
+        showarrow=False,
+        font=dict(size=11, color="#777"),
+        yanchor="bottom",
+    )
+    fig.add_annotation(
+        x=xmid,
+        y=-0.08,
+        xref="x",
+        yref="paper",
+        text=f"{spec['label']} away",
+        showarrow=False,
+        font=dict(size=11, color="#444"),
+        yanchor="top",
+    )
 
 fig.update_layout(
     title="IBI/TransitApp ETA Accuracy Benchmark",
-    xaxis_title="Prediction Horizon Bin",
-    yaxis_title="Accuracy (%)",
-    yaxis={"range": [0, 115]},
+    xaxis=dict(
+        title="Time until arrival (minutes)",
+        range=[16.0, -0.5],
+        tickvals=[0, 3, 6, 10, 15],
+        showgrid=False,
+        zeroline=False,
+    ),
+    yaxis=dict(
+        title="Prediction error (minutes)",
+        range=[-2.2, 5.6],
+        zeroline=True,
+        zerolinecolor="rgba(180,180,180,0.9)",
+        zerolinewidth=1,
+        gridcolor="rgba(200,200,200,0.3)",
+    ),
+    legend=dict(
+        orientation="v",
+        x=1.01,
+        y=0.5,
+        xanchor="left",
+        bordercolor="#dddddd",
+        borderwidth=1,
+    ),
     template="plotly_white",
-    height=480,
-    width=800,
-    showlegend=False,
+    height=540,
+    width=960,
+    margin=dict(r=240, t=80, b=80),
 )
 
 os.makedirs("screenshots", exist_ok=True)
