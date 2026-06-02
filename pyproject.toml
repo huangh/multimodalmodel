@@ -1,0 +1,30 @@
+[project]
+name = "multimodalmodel"
+version = "0.1.0"
+description = "IBI/TransitApp ETA Accuracy Benchmark for transit prediction evaluation"
+requires-python = ">=3.11"
+dependencies = [
+    "marimo>=0.10.0",
+    "polars>=1.0.0",
+    "plotly>=5.0.0",
+    "kaleido>=1.3.0",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.4.0"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "RUF", "B", "C4"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# marimo cells: imports inside function bodies (E402) and last-expression-as-output pattern (B018)
+"app.py" = ["E402", "B018"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
