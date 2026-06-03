@@ -3,12 +3,17 @@
 from multimodalmodel.benchmark import (
     BIN_SPECS,
     classify_predictions,
+    classify_predictions_by_stop,
     compute_accuracy,
     generate_sample_data,
 )
-from multimodalmodel.charts import make_benchmark_chart
+from multimodalmodel.charts import make_benchmark_chart, make_trip_profile_chart
 from multimodalmodel.gtfs_rt import fetch_feed, parse_trip_updates, parse_vehicle_positions
-from multimodalmodel.live_tracker import MIN_RESOLVED_FOR_CHART, PredictionTracker
+from multimodalmodel.live_tracker import (
+    MIN_RESOLVED_FOR_CHART,
+    PredictionTracker,
+    build_trip_profile_df,
+)
 from multimodalmodel.mbta import (
     MBTA_SUBWAY_ROUTES,
     fetch_mbta_predictions,
@@ -20,13 +25,16 @@ __all__ = [
     "MBTA_SUBWAY_ROUTES",
     "MIN_RESOLVED_FOR_CHART",
     "PredictionTracker",
+    "build_trip_profile_df",
     "classify_predictions",
+    "classify_predictions_by_stop",
     "compute_accuracy",
     "fetch_feed",
     "fetch_mbta_predictions",
     "fetch_mbta_vehicles",
     "generate_sample_data",
     "make_benchmark_chart",
+    "make_trip_profile_chart",
     "parse_trip_updates",
     "parse_vehicle_positions",
 ]

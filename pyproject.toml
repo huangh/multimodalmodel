@@ -38,6 +38,7 @@ ignore = ["E501", "C408"]
 "app.py" = ["E402", "B018"]
 "live_app.py" = ["E402", "B018"]
 "mbta_app.py" = ["E402", "B018"]
+"trip_app.py" = ["E402", "B018"]
 
 [tool.ruff.format]
 quote-style = "double"
