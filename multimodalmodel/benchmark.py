@@ -64,6 +64,56 @@ def classify_predictions(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 
+def classify_predictions_by_stop(
+    resolved_stops_df: pl.DataFrame,
+    selected_bins: frozenset[str] | None = None,
+) -> pl.DataFrame:
+    """Aggregate IBI accuracy counts per stop from resolved stop metadata.
+
+    Args:
+        resolved_stops_df: Output of :meth:`PredictionTracker.get_resolved_stops_df`.
+            Must contain ``stop_id``, ``stop_sequence``, ``predicted_s``, ``actual_s``.
+        selected_bins: IBI bin labels to include (e.g. ``{"0-3 min", "3-6 min"}``).
+            ``None`` → include all four bins.
+
+    Returns:
+        DataFrame with ``stop_id``, ``stop_sequence``, ``correct_count``,
+        ``incorrect_count`` — one row per unique (stop_id, stop_sequence).
+    """
+    empty = pl.DataFrame({
+        "stop_id": pl.Series([], dtype=pl.String),
+        "stop_sequence": pl.Series([], dtype=pl.Int32),
+        "correct_count": pl.Series([], dtype=pl.Int32),
+        "incorrect_count": pl.Series([], dtype=pl.Int32),
+    })
+    if resolved_stops_df.is_empty():
+        return empty
+
+    classified = classify_predictions(
+        resolved_stops_df.select(["predicted_s", "actual_s"])
+    ).with_columns([
+        resolved_stops_df["stop_id"],
+        resolved_stops_df["stop_sequence"],
+    ])
+
+    in_range = classified.filter(pl.col("bin").is_not_null())
+    if selected_bins is not None:
+        in_range = in_range.filter(pl.col("bin").is_in(list(selected_bins)))
+
+    if in_range.is_empty():
+        return empty
+
+    return (
+        in_range
+        .group_by(["stop_id", "stop_sequence"])
+        .agg([
+            pl.col("is_accurate").sum().cast(pl.Int32).alias("correct_count"),
+            (~pl.col("is_accurate")).sum().cast(pl.Int32).alias("incorrect_count"),
+        ])
+        .sort("stop_sequence")
+    )
+
+
 def compute_accuracy(classified: pl.DataFrame) -> tuple[pl.DataFrame, float]:
     """Aggregate per-bin accuracy from a classified predictions DataFrame.
 

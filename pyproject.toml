@@ -20,6 +20,7 @@ dependencies = [
 multimodalmodel = "multimodalmodel:main"
 multimodalmodel-app = "multimodalmodel:run_app"
 multimodalmodel-live = "multimodalmodel:run_live_app"
+multimodalmodel-mbta = "multimodalmodel:run_mbta_app"
 
 [dependency-groups]
 dev = ["ruff>=0.4.0"]
@@ -36,6 +37,8 @@ ignore = ["E501", "C408"]
 # marimo cells: E402 (imports in function bodies), B018 (last-expr output)
 "app.py" = ["E402", "B018"]
 "live_app.py" = ["E402", "B018"]
+"mbta_app.py" = ["E402", "B018"]
+"trip_app.py" = ["E402", "B018"]
 
 [tool.ruff.format]
 quote-style = "double"
