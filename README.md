@@ -36,6 +36,25 @@ pip install .
 pip install -e .
 ```
 
+## Script hub (`notebooks/hub.py`)
+
+A marimo front end over a folder of analysis scripts. Pick a script from the
+dropdown and it is loaded and rendered into the page you are already on; every
+selection is logged so the most-used plots sort to the top.
+
+```bash
+uv run multimodalmodel-hub --port 8000     # hub + per-script pages + JSON API
+uv run marimo run notebooks/hub.py         # hub notebook on its own
+```
+
+Then open `http://localhost:8000/?user=alice`.
+
+Scripts live under `scripts/` in whatever nesting you like — copy
+`scripts/_template.py`, drop it in, press **Rescan scripts**. Details, metadata
+format, and the HTTP surface are in [`docs/hub.md`](docs/hub.md); notes on what
+marimo does and does not offer for collaboration are in
+[`docs/marimo-collaboration.md`](docs/marimo-collaboration.md).
+
 ## Running the apps
 
 ### Synthetic demo (`app.py`)

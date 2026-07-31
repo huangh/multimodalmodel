@@ -16,14 +16,20 @@ dependencies = [
     "httpx>=0.24.0",
 ]
 
+[project.optional-dependencies]
+# The hub server; both are already marimo dependencies, pinned here so the
+# server has them declared explicitly.
+hub = ["starlette>=0.37", "uvicorn>=0.30"]
+
 [project.scripts]
 multimodalmodel = "multimodalmodel:main"
 multimodalmodel-app = "multimodalmodel:run_app"
 multimodalmodel-live = "multimodalmodel:run_live_app"
 multimodalmodel-mbta = "multimodalmodel:run_mbta_app"
+multimodalmodel-hub = "multimodalmodel.hub.server:main"
 
 [dependency-groups]
-dev = ["ruff>=0.4.0"]
+dev = ["ruff>=0.4.0", "pytest>=8.0.0"]
 
 [tool.ruff]
 line-length = 88
@@ -39,6 +45,11 @@ ignore = ["E501", "C408"]
 "live_app.py" = ["E402", "B018"]
 "mbta_app.py" = ["E402", "B018"]
 "trip_app.py" = ["E402", "B018"]
+"notebooks/*.py" = ["E402", "B018"]
+"scripts/**/*.py" = ["E402", "B018"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.ruff.format]
 quote-style = "double"
